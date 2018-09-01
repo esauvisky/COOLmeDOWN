@@ -87,6 +87,15 @@ def newClipboardDetected(*args):
 
 
 def splitCoords(text):
+    '''Splits a string that represents a coordinate into a list of floats
+
+    Arguments:
+        text {string} -- The lat/long pair in string format, e.g.: ' 35.281374, 139.663600  '
+
+    Returns:
+        list -- A pair of floats, one for latitude and one for longitude.
+        boolean -- False, if not a valid coordinate.
+    '''
     try:
         coord = [float(x.strip()) for x in text.split(',')]
         if not isinstance(coord[0], float) or not isinstance(coord[1], float):
@@ -99,6 +108,11 @@ def splitCoords(text):
 
 
 def calculate(lon1, lat1, lon2, lat2):
+    '''Calculates the Harvesian distance between two coordinates
+
+    Returns:
+        float -- The distance in kilometers, rounded to two decimal places.
+    '''
     dist = gpxpy.geo.haversine_distance(lat1, lon1, lat2, lon2)
     dist = dist / 1000
     dist = round(dist, 2)
@@ -207,7 +221,7 @@ def calculateCD(dist):
     return time
 
 
-print(CBOLD + CGREEN + "Welcome to CoolmDown and calm down you dirty spoofer!" + CEND)
+print(CBOLD + CGREEN + "Keep me cool you dirty spoofer!" + CEND)
 clip = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
 clip.connect('owner-change', newClipboardDetected)
 Gtk.main()
