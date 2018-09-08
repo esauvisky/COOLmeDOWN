@@ -34,7 +34,7 @@ def prettifyCoord(coord, n=6):
     '''
     try:
         if isinstance(coord[0], float) and isinstance(coord[1], float):
-            return str(format(coord[0], '.' + n + 'f') + ',' + format(coord[1], '.' + n + 'f'))
+            return str(format(coord[0], '.' + str(n) + 'f') + ',' + format(coord[1], '.' + str(n) + 'f'))
     except Exception as e:
         return False
 
@@ -63,7 +63,7 @@ def newClipboardDetected(*args):
             cooldown = calculateCD(dist)
 
             # If the same coord was copied twice in a row, the user wants a timer
-            if cooldown == 0:
+            if dist == 0:
                 # TODO: set timer
                 return
 
