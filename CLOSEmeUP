@@ -62,7 +62,7 @@ def splitCoords(text):
         return coord
 
 
-def calculate(lon1, lat1, lon2, lat2):
+def calculate(lat1, lon1, lat2, lon2):
     '''Calculates the Harvesian distance between two coordinates
 
     Returns:
