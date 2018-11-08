@@ -1,20 +1,10 @@
 #!/usr/bin/env python3
 # Author: Emi Bemol <esauvisky@gmail.com>
 
-# TODO: fix bug
-# 21.077175,-101.603202
-# 41.212442, -95.978720
-# distância genuína: 2294km (http://boulter.com/gps/distance/?from=41.212442%2C+-95.978720&to=21.077175%2C-101.603202&units=k)
-# distância harvesiana do bot: 704km
+import argparse
 
 # GPXpy Library
 import gpxpy.geo
-
-# GTK Stuff
-import gi
-gi.require_version('Gtk', '3.0')
-gi.require_version('Notify', '0.7')
-from gi.repository import Gtk, Gdk, Notify
 
 # Colored STDOUT
 CEND = '\033[0m'
@@ -24,8 +14,13 @@ CYELLOW = '\033[33m'
 CGREEN = '\033[32m'
 CBLUE = '\033[34m'
 
-# Initializes the Notify instance
-Notify.init('CoolmDown')
+# Arguments
+parser = argparse.ArgumentParser(description='COOLyouDOWN', prefix_chars='@')
+parser.add_argument(dest='A', default=None, type=str,
+                    help="First coordinate.")
+parser.add_argument(dest='B', default=None, type=str,
+                    help="Second coordinate.")
+args = parser.parse_args()
 
 
 def prettifyCoord(coord, n=6):
@@ -45,53 +40,6 @@ def prettifyCoord(coord, n=6):
         return False
 
 
-def newClipboardDetected(*args):
-    '''Fires everytime the Gnome clipboard changes.
-
-    Function that handles clipboard changes and stores coordinates.
-    When it finds a new coordinate, compares it with the previous one,
-    then, notifies the user with the proper cooldown.
-    '''
-    global lastCoord
-    cooldown = 0
-    currentCoord = splitCoords(clip.wait_for_text())
-    if currentCoord is not False:
-        try:
-            dist = calculate(lastCoord[0], lastCoord[1], currentCoord[0], currentCoord[1])
-        except Exception as e:
-            if 'lastCoord' not in globals():
-                print('First coordinate detected.\n')
-            else:
-                print(CRED + 'Some unknown error happened!\nPlease copy below and report it to @esauvisky or open an issue on GitHub. Thanks!')
-                print(e)
-                exit()
-        else:
-            cooldown = calculateCD(dist)
-
-            # If the same coord was copied twice in a row, the user wants a timer
-            if dist == 0:
-                # TODO: set timer
-                return
-
-            # Sets the colors in one beautiful single line
-            color = CGREEN if cooldown < 10 else CYELLOW if cooldown < 30 else CRED
-
-            # stdout
-            print("Last coordinate was: " + CBLUE + prettifyCoord(lastCoord) + CEND)
-            print("New coordinate is:   " + CBLUE + prettifyCoord(currentCoord) + CEND)
-            print("Cooldown is " + CBOLD + color + str(cooldown) + ' minutes' + CEND + ' (' + str(dist) + 'km)')
-            print('--------------------------------------------')
-
-            # and libnotify
-            notification = Notify.Notification.new(str(cooldown) + ' minutes ' + '(' + str(dist) + 'km)',
-                                                   'From: ' + prettifyCoord(lastCoord, 3) +
-                                                   '\nTo: ' + prettifyCoord(currentCoord, 3))
-            notification.set_urgency(1)
-            notification.show()
-
-        lastCoord = currentCoord
-
-
 def splitCoords(text):
     '''Splits a string that represents a coordinate into a list of floats
 
@@ -103,11 +51,12 @@ def splitCoords(text):
         boolean -- False, if not a valid coordinate.
     '''
     try:
+        # TODO: remove anything that's not a comma or a number
         coord = [float(x.strip()) for x in text.split(',')]
         if not isinstance(coord[0], float) or not isinstance(coord[1], float):
             return False
     except Exception as e:
-        #print("Error! " + str(coord) + '\n' + str(e))
+        print("Error! " + str(coord) + '\n' + str(e))
         return False
     else:
         return coord
@@ -227,8 +176,29 @@ def calculateCD(dist):
     return time
 
 
-print(CBOLD + CGREEN + "Keep me cool you dirty spoofer!" + CEND)
-clip = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
-clip.connect('owner-change', newClipboardDetected)
-Gtk.main()
-Notify.uninit()
+
+try:
+    coordA = splitCoords(args.A)
+except Exception as e:
+    print(CBOLD + CRED + 'The coordinate A you used doesn\'t seem valid!' + CEND + '\nGimme your cord with something like \'"-12.34567, 89.012345" (in quotes works better)')
+    exit()
+
+try:
+    coordB = splitCoords(args.B)
+except Exception as e:
+    print(CBOLD + CRED + 'The coordinate B you used doesn\'t seem valid!' + CEND + '\nGimme your cord with something like \'"-12.34567, 89.012345" (in quotes works better)')
+    exit()
+
+
+# print(coordA)
+# print(coordB)
+try:
+    dist = calculate(coordA[0], coordA[1], coordB[0], coordB[1])
+    # print(dist)
+    cooldown = calculateCD(dist)
+except Exception as e:
+    print(CBOLD + CRED + 'An unknowne error happened.')
+    exit()
+
+print(cooldown)
+
