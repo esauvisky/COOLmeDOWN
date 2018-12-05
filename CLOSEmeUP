@@ -17,7 +17,7 @@ CGREEN = '\033[32m'
 CBLUE = '\033[34m'
 
 # Arguments
-parser = argparse.ArgumentParser(description='COOLyouDOWN')
+parser = argparse.ArgumentParser(description='COOLyouDOWN', prefix_chars='@')
 parser.add_argument(dest='current_coord', default=None, type=str,
                     help="The coordinate you're in or you're using as base. Must be used with = if the coordinate starts with a negative number.")
 args = parser.parse_args()

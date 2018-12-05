@@ -15,7 +15,7 @@ CGREEN = '\033[32m'
 CBLUE = '\033[34m'
 
 # Arguments
-parser = argparse.ArgumentParser(description='COOLyouDOWN', prefix_chars='@')
+parser = argparse.ArgumentParser(description='CALCyourCLOCK', prefix_chars='@')
 parser.add_argument(dest='A', default=None, type=str,
                     help="First coordinate.")
 parser.add_argument(dest='B', default=None, type=str,
