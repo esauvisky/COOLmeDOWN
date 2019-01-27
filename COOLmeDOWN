@@ -7,6 +7,8 @@
 # distância genuína: 2294km (http://boulter.com/gps/distance/?from=41.212442%2C+-95.978720&to=21.077175%2C-101.603202&units=k)
 # distância harvesiana do bot: 704km
 
+import re
+
 # GPXpy Library
 import gpxpy.geo
 
@@ -15,6 +17,7 @@ import gi
 gi.require_version('Gtk', '3.0')
 gi.require_version('Notify', '0.7')
 from gi.repository import Gtk, Gdk, Notify
+
 
 # Colored STDOUT
 CEND = '\033[0m'
@@ -103,9 +106,14 @@ def splitCoords(text):
         boolean -- False, if not a valid coordinate.
     '''
     try:
-        coord = [float(x.strip()) for x in text.split(',')]
+        match = re.search('^https://maps.google.com/maps\?q=(.+)$', text)
+        if match:
+            coord = match[1]
+            coord = [float(x.strip()) for x in coord.split(',')]
+        else:
+            coord = [float(x.strip()) for x in text.split(',')]
         if not isinstance(coord[0], float) or not isinstance(coord[1], float):
-            return False
+            raise 'Not a coordinate'
     except Exception as e:
         #print("Error! " + str(coord) + '\n' + str(e))
         return False
@@ -211,9 +219,9 @@ def calculateCD(dist):
         time = 8
     elif dist >= 10 and dist < 15:
         time = 6
-    elif dist >= 7 and dist < 10:
+    elif dist >= 6 and dist < 10:
         time = 4
-    elif dist >= 5 and dist < 7:
+    elif dist >= 5 and dist < 6:
         time = 3
     elif dist >= 4 and dist < 5:
         time = 2

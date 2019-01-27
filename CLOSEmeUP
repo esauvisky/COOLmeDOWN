@@ -16,6 +16,20 @@ CYELLOW = '\033[33m'
 CGREEN = '\033[32m'
 CBLUE = '\033[34m'
 
+def sortkeypicker(keynames):
+    negate = set()
+    for i, k in enumerate(keynames):
+        if k[:1] == '-':
+            keynames[i] = k[1:]
+            negate.add(k[1:])
+    def getit(adict):
+       composite = [adict[k] for k in keynames]
+       for i, (k, v) in enumerate(zip(keynames, composite)):
+           if k in negate:
+               composite[i] = -v
+       return composite
+    return getit
+
 # Arguments
 parser = argparse.ArgumentParser(description='COOLyouDOWN', prefix_chars='@')
 parser.add_argument(dest='current_coord', default=None, type=str,
@@ -160,9 +174,9 @@ def calculateCD(dist):
         time = 8
     elif dist >= 10 and dist < 15:
         time = 6
-    elif dist >= 7 and dist < 10:
+    elif dist >= 6 and dist < 10:
         time = 4
-    elif dist >= 5 and dist < 7:
+    elif dist >= 5 and dist < 6:
         time = 3
     elif dist >= 4 and dist < 5:
         time = 2
@@ -192,9 +206,16 @@ except Exception as e:
 finally:
     bigList = xclip.stdout.decode('utf-8').split('\n')
 
+
+# with open('list.txt', 'rU') as file:
+#     for line in file:
+
+
 # bigList = coords.strip('\n').replace('\n', ' ')
 # coords = re.findall('[-0-9.]+, *[-0-9.]+', bigList)
 # coordsList = [splitCoords(coord) for coord in coords]
+
+nests = []
 
 for n, line in enumerate(bigList):
     try:
@@ -213,10 +234,24 @@ for n, line in enumerate(bigList):
 
     cooldown = calculateCD(dist)
     if cooldown < 120:
-        # Sets the colors in one beautiful single line
+        nest = {'cooldown': cooldown, 'text': ''}
+
         color = CGREEN if cooldown < 15 else CYELLOW if cooldown < 45 else CRED
 
-        # stdout
-        print(CBOLD + str(bigList[n - 1]) + CEND)
-        print("Coord: " + CBLUE + prettifyCoord(coord) + CEND + " Cooldown: is " + CBOLD + color + str(cooldown) + ' minutes' + CEND + ' (' + str(dist) + 'km)')
-        print('--------------------------------------------')
+        p = re.compile(r'.*:flag_..: ([A-z ]+ :\d+: .+$)')
+        previous_line = p.match(bigList[n - 1])
+
+        if previous_line:
+            nest['text'] += CBOLD + previous_line.group(1) + CEND + '\n'
+        else:
+            nest['text'] += CBOLD + 'shithshisthsthi' + CEND + '\n'
+
+        nest['text'] += "Coord: " + CBLUE + prettifyCoord(coord) + CEND + "\nCooldown: is " + CBOLD + color + str(cooldown) + ' minutes' + CEND + ' (' + str(dist) + 'km)' + '\n'
+        nest['text'] += '--------------------------------------------'
+
+        nests.append(nest)
+
+nests = sorted(nests, key=sortkeypicker(['cooldown']))
+
+for nest in nests:
+    print(nest['text'], '')

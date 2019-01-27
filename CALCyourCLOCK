@@ -160,9 +160,9 @@ def calculateCD(dist):
         time = 8
     elif dist >= 10 and dist < 15:
         time = 6
-    elif dist >= 7 and dist < 10:
+    elif dist >= 6 and dist < 10:
         time = 4
-    elif dist >= 5 and dist < 7:
+    elif dist >= 5 and dist < 6:
         time = 3
     elif dist >= 4 and dist < 5:
         time = 2
