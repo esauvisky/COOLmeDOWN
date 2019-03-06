@@ -8,13 +8,7 @@ import subprocess
 # GPXpy Library
 import gpxpy.geo
 
-# Colored STDOUT
-CEND = '\033[0m'
-CBOLD = '\033[1m'
-CRED = '\033[91m'
-CYELLOW = '\033[33m'
-CGREEN = '\033[32m'
-CBLUE = '\033[34m'
+
 
 def sortkeypicker(keynames):
     negate = set()
@@ -32,10 +26,28 @@ def sortkeypicker(keynames):
 
 # Arguments
 parser = argparse.ArgumentParser(description='COOLyouDOWN', prefix_chars='@')
+parser.add_argument('@plain', dest='plain', action='store_const', const=True,
+                    help="(Optional) Prints a plain text output without ANSI escape codes.")
 parser.add_argument(dest='current_coord', default=None, type=str,
                     help="The coordinate you're in or you're using as base. Must be used with = if the coordinate starts with a negative number.")
+parser.add_argument('dump', nargs='?',
+                    help="(Optional) Instead of using xclip, you can pass a file with the dump.")
+
 args = parser.parse_args()
 
+if args.plain:
+    # No Colors
+    CBOLD = '<b>'
+    CEND = '</b>'
+    CRED = CBLUE = CYELLOW = CGREEN = ''
+else:
+    # Colored STDOUT
+    CEND = '\033[0m'
+    CBOLD = '\033[1m'
+    CRED = '\033[91m'
+    CYELLOW = '\033[33m'
+    CGREEN = '\033[32m'
+    CBLUE = '\033[34m'
 
 def prettifyCoord(coord, n=6):
     '''Prettifies a coordinate into a beautiful string.
@@ -197,14 +209,20 @@ try:
 except Exception as e:
     print(CBOLD + CRED + 'The coordinate you used doesn\'t seem valid!' + CEND + '\nGimme your cord with something like \'"-12.34567, 89.012345" (in quotes works better)')
 
-try:
-    xclip = subprocess.run(['xclip', '-o', '-selection', 'clipboard'], stdout=subprocess.PIPE)
-except Exception as e:
-    print(CBOLD + CRED + "ERROR: something happened, must likely you don't have xclip installed on your machine." + CEND)
-    print(e)
-    exit()
-finally:
-    bigList = xclip.stdout.decode('utf-8').split('\n')
+if args.dump is None:
+    try:
+        xclip = subprocess.run(['xclip', '-o', '-selection', 'clipboard'], stdout=subprocess.PIPE)
+    except Exception as e:
+        print(CBOLD + CRED + "ERROR: something happened, must likely you don't have xclip installed on your machine." + CEND)
+        print(e)
+        exit()
+    finally:
+        bigList = xclip.stdout.decode('utf-8').split('\n')
+else:
+    with open(args.dump) as file:
+        bigList = [line for line in file]
+        # for line in file:
+        # bigList = file.readlines()
 
 
 # with open('list.txt', 'rU') as file:
@@ -238,15 +256,156 @@ for n, line in enumerate(bigList):
 
         color = CGREEN if cooldown < 15 else CYELLOW if cooldown < 45 else CRED
 
-        p = re.compile(r'.*:flag_..: ([A-z ]+ :\d+: .+$)')
+        if args.plain:
+            p = re.compile(r"([🇦-🇿a-z:_]+) {0,2}([A-Z][A-Za-z0-9' ]+) \<[0-9a-zA-Z:]+\> (.+) (\([+\d-]+\))")
+        else:
+            p = re.compile(r'.*:flag_..: ([A-z ]+) :\d+: .+(\([+\d-]+\).*$)')
+               # p = re.compile(r".*_[a-z]{2}: +(\S+) \<[0-9a-zA-Z:]+\> (.+) (\([0-9-+]+\))");
+ # p = re.compile(r".*_[a-z]{2}: +(\S+) \<[0-9a-zA-Z:]+\> (.+) (\([0-9-+]+\))");
+
+for n, line in enumerate(bigList):
+    try:
+        coord = splitCoords(re.findall('[-0-9.]+, *[-0-9.]+', line)[0])
+    except Exception:
+        # Line does not contain a coordinate
+        continue
+
+    try:
+        dist = calculate(coord[0], coord[1], currentCoord[0], currentCoord[1])
+    except Exception as e:
+        print(CRED + 'Some unknown error happened!\nPlease copy below and report it to @esauvisky or open an issue on GitHub. Thanks!')
+        print('Coords:\n' + coord[0] + ' ' + coord[1] + ' ' + currentCoord[0] + ' ' + currentCoord[1])
+        print(e)
+        exit()
+
+    cooldown = calculateCD(dist)
+    if cooldown < 120:
+        nest = {'cooldown': cooldown, 'text': ''}
+
+        color = CGREEN if cooldown < 15 else CYELLOW if cooldown < 45 else CRED
+
+        if args.plain:
+            p = re.compile(r"([🇦-🇿a-z:_]+) {0,2}([A-Z][A-Za-z0-9' ]+) \<[0-9a-zA-Z:]+\> (.+) (\([+\d-]+\))")
+        else:
+            p = re.compile(r'.*:flag_..: ([A-z ]+) :\d+: .+(\([+\d-]+\).*$)')
+        # p = re.compile(r".*_[a-z]{2}: +(\S+) \<[0-9a-zA-Z:]+\> (.+) (\([0-9-+]+\))");
         previous_line = p.match(bigList[n - 1])
 
+        # print(CBOLD + previous_line.group(1) + '  ' + previous_line.group(2) + ' - ' + previous_line.group(3) + ' ' + previous_line.group(4) + CEND + '\n')
         if previous_line:
-            nest['text'] += CBOLD + previous_line.group(1) + CEND + '\n'
+            if args.plain:
+                nest['text'] += previous_line.group(1) + ' ' + CBOLD + previous_line.group(2) + ' <i>-' + previous_line.group(3) + '</i> ' + CBOLD + previous_line.group(4) + CEND + '\n'
+            else:
+                nest['text'] += CBOLD + CGREEN + previous_line.group(1) + ' ' + previous_line.group(2) + CEND + '\n'
         else:
-            nest['text'] += CBOLD + 'shithshisthsthi' + CEND + '\n'
+            nest['text'] += CBOLD + str(previous_line).replace('<', '&lt;').replace('>', '&gt;').replace('&', '&amp;') + CEND + '\n'
 
-        nest['text'] += "Coord: " + CBLUE + prettifyCoord(coord) + CEND + "\nCooldown: is " + CBOLD + color + str(cooldown) + ' minutes' + CEND + ' (' + str(dist) + 'km)' + '\n'
+        if args.plain:
+            nest['text'] += "Coord: <code>" + prettifyCoord(coord) + "</code>\nCooldown is: <b>" + str(cooldown) + ' minutes</b>' + ' (' + str(dist) + 'km)' + '\n'
+        else:
+            nest['text'] += "Coord: " + CBLUE + prettifyCoord(coord) + CEND + "\nCooldown: is " + CBOLD + color + str(cooldown) + ' minutes' + CEND + ' (' + str(dist) + 'km)' + '\n'
+        nest['text'] += '--------------------------------------------'
+        previous_line = p.match(bigList[n - 1])
+
+for n, line in enumerate(bigList):
+    try:
+        coord = splitCoords(re.findall('[-0-9.]+, *[-0-9.]+', line)[0])
+    except Exception:
+        # Line does not contain a coordinate
+        continue
+
+    try:
+        dist = calculate(coord[0], coord[1], currentCoord[0], currentCoord[1])
+    except Exception as e:
+        print(CRED + 'Some unknown error happened!\nPlease copy below and report it to @esauvisky or open an issue on GitHub. Thanks!')
+        print('Coords:\n' + coord[0] + ' ' + coord[1] + ' ' + currentCoord[0] + ' ' + currentCoord[1])
+        print(e)
+        exit()
+
+    cooldown = calculateCD(dist)
+    if cooldown < 120:
+        nest = {'cooldown': cooldown, 'text': ''}
+
+        color = CGREEN if cooldown < 15 else CYELLOW if cooldown < 45 else CRED
+
+        if args.plain:
+            p = re.compile(r"([🇦-🇿a-z:_]+) {0,2}([A-Z][A-Za-z0-9' ]+) \<[0-9a-zA-Z:]+\> (.+) (\([+\d-]+\))")
+        else:
+            p = re.compile(r'.*:flag_..: ([A-z ]+) :\d+: .+(\([+\d-]+\).*$)')
+        # p = re.compile(r".*_[a-z]{2}: +(\S+) \<[0-9a-zA-Z:]+\> (.+) (\([0-9-+]+\))");
+        previous_line = p.match(bigList[n - 1])
+
+        # print(CBOLD + previous_line.group(1) + '  ' + previous_line.group(2) + ' - ' + previous_line.group(3) + ' ' + previous_line.group(4) + CEND + '\n')
+        if previous_line:
+            if args.plain:
+                nest['text'] += previous_line.group(1) + ' ' + CBOLD + previous_line.group(2) + ' <i>-' + previous_line.group(3) + '</i> ' + CBOLD + previous_line.group(4) + CEND + '\n'
+            else:
+                nest['text'] += CBOLD + CGREEN + previous_line.group(1) + ' ' + previous_line.group(2) + CEND + '\n'
+        else:
+            nest['text'] += CBOLD + str(previous_line).replace('<', '&lt;').replace('>', '&gt;').replace('&', '&amp;') + CEND + '\n'
+
+        if args.plain:
+            nest['text'] += "Coord: <code>" + prettifyCoord(coord) + "</code>\nCooldown is: <b>" + str(cooldown) + ' minutes</b>' + ' (' + str(dist) + 'km)' + '\n'
+        else:
+            nest['text'] += "Coord: " + CBLUE + prettifyCoord(coord) + CEND + "\nCooldown: is " + CBOLD + color + str(cooldown) + ' minutes' + CEND + ' (' + str(dist) + 'km)' + '\n'
+        nest['text'] += '--------------------------------------------'
+
+
+for n, line in enumerate(bigList):
+    try:
+        coord = splitCoords(re.findall('[-0-9.]+, *[-0-9.]+', line)[0])
+    except Exception:
+        # Line does not contain a coordinate
+        continue
+
+    try:
+        dist = calculate(coord[0], coord[1], currentCoord[0], currentCoord[1])
+    except Exception as e:
+        print(CRED + 'Some unknown error happened!\nPlease copy below and report it to @esauvisky or open an issue on GitHub. Thanks!')
+        print('Coords:\n' + coord[0] + ' ' + coord[1] + ' ' + currentCoord[0] + ' ' + currentCoord[1])
+        print(e)
+        exit()
+
+    cooldown = calculateCD(dist)
+    if cooldown < 120:
+        nest = {'cooldown': cooldown, 'text': ''}
+
+        color = CGREEN if cooldown < 15 else CYELLOW if cooldown < 45 else CRED
+
+        if args.plain:
+            p = re.compile(r"([🇦-🇿a-z:_]+) {0,2}([A-Z][A-Za-z0-9' ]+) \<[0-9a-zA-Z:]+\> (.+) (\([+\d-]+\))")
+        else:
+            p = re.compile(r'.*:flag_..: ([A-z ]+) :\d+: .+(\([+\d-]+\).*$)')
+        # p = re.compile(r".*_[a-z]{2}: +(\S+) \<[0-9a-zA-Z:]+\> (.+) (\([0-9-+]+\))");
+        previous_line = p.match(bigList[n - 1])
+
+        # print(CBOLD + previous_line.group(1) + '  ' + previous_line.group(2) + ' - ' + previous_line.group(3) + ' ' + previous_line.group(4) + CEND + '\n')
+        if previous_line:
+            if args.plain:
+                nest['text'] += previous_line.group(1) + ' ' + CBOLD + previous_line.group(2) + ' <i>-' + previous_line.group(3) + '</i> ' + CBOLD + previous_line.group(4) + CEND + '\n'
+            else:
+                nest['text'] += CBOLD + CGREEN + previous_line.group(1) + ' ' + previous_line.group(2) + CEND + '\n'
+        else:
+            nest['text'] += CBOLD + str(previous_line).replace('<', '&lt;').replace('>', '&gt;').replace('&', '&amp;') + CEND + '\n'
+
+        if args.plain:
+            nest['text'] += "Coord: <code>" + prettifyCoord(coord) + "</code>\nCooldown is: <b>" + str(cooldown) + ' minutes</b>' + ' (' + str(dist) + 'km)' + '\n'
+        else:
+            nest['text'] += "Coord: " + CBLUE + prettifyCoord(coord) + CEND + "\nCooldown: is " + CBOLD + color + str(cooldown) + ' minutes' + CEND + ' (' + str(dist) + 'km)' + '\n'
+        nest['text'] += '--------------------------------------------'
+        # print(CBOLD + previous_line.group(1) + '  ' + previous_line.group(2) + ' - ' + previous_line.group(3) + ' ' + previous_line.group(4) + CEND + '\n')
+        if previous_line:
+            if args.plain:
+                nest['text'] += previous_line.group(1) + ' ' + CBOLD + previous_line.group(2) + ' <i>-' + previous_line.group(3) + '</i> ' + CBOLD + previous_line.group(4) + CEND + '\n'
+            else:
+                nest['text'] += CBOLD + CGREEN + previous_line.group(1) + ' ' + previous_line.group(2) + CEND + '\n'
+        else:
+            nest['text'] += CBOLD + str(previous_line).replace('<', '&lt;').replace('>', '&gt;').replace('&', '&amp;') + CEND + '\n'
+
+        if args.plain:
+            nest['text'] += "Coord: <code>" + prettifyCoord(coord) + "</code>\nCooldown is: <b>" + str(cooldown) + ' minutes</b>' + ' (' + str(dist) + 'km)' + '\n'
+        else:
+            nest['text'] += "Coord: " + CBLUE + prettifyCoord(coord) + CEND + "\nCooldown: is " + CBOLD + color + str(cooldown) + ' minutes' + CEND + ' (' + str(dist) + 'km)' + '\n'
         nest['text'] += '--------------------------------------------'
 
         nests.append(nest)
