@@ -1,12 +1,6 @@
 #!/usr/bin/env python3
 # Author: Emi Bemol <esauvisky@gmail.com>
 
-# TODO: fix bug
-# 21.077175,-101.603202
-# 41.212442, -95.978720
-# distância genuína: 2294km (http://boulter.com/gps/distance/?from=41.212442%2C+-95.978720&to=21.077175%2C-101.603202&units=k)
-# distância harvesiana do bot: 704km
-
 import re
 
 # GPXpy Library
