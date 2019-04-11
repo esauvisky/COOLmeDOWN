@@ -1,0 +1,4 @@
+gobject==0.1.0
+gpxpy==1.3.5
+pycairo==1.18.0
+PyGObject==3.32.0

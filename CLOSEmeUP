@@ -258,7 +258,7 @@ for n, line in enumerate(bigList):
         exit()
 
     cooldown = calculateCD(dist)
-    if cooldown < 120:
+    if cooldown <= 90:
         nest = {'cooldown': cooldown, 'text': ''}
 
         color = CGREEN if cooldown < 15 else CYELLOW if cooldown < 45 else CRED

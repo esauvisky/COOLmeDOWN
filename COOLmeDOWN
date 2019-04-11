@@ -22,7 +22,7 @@ CGREEN = '\033[32m'
 CBLUE = '\033[34m'
 
 # Initializes the Notify instance
-Notify.init('CoolmDown')
+Notify.init('COOLmeDOWN')
 
 
 def prettifyCoord(coord, n=6):
